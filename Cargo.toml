@@ -8,7 +8,8 @@ edition = "2018"
 
 [dependencies]
 anyhow = "1.0.38"
-confy = "0.4.0"
 git2 = "0.13.17"
+home = "0.5.3"
 serde = { version = "1.0.123", features = ["derive"] }
 structopt = "0.3.21"
+toml = "0.5.8"
