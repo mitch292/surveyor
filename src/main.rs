@@ -3,26 +3,28 @@ use git2::Repository;
 use serde::{Deserialize, Serialize};
 use std::fs::{remove_dir_all, File};
 use std::io::prelude::*;
+use std::process::Command;
 use structopt::StructOpt;
 
 const DEFAULT_CONFIG_DIR: &str = ".config";
 const DEFAULT_CONFIG_FILE_NAME: &str = ".surveyor.toml";
 
+// TODO:
+// - Get Terraform commands working
+// - Implement slack piece
+// - Should we have our own errors and give the users some more helpful messages?
+// - Change the file structure?
+// - Support more file types?
+
 fn main() -> Result<()> {
     let opts = Opt::from_args();
 
-    let config_path = determine_config_path(opts.config)?;
-    let projects = get_projects_from_config_file(config_path)?;
+    let config_file_path = determine_config_path(opts.config)?;
+    let config = Config::from_file(&config_file_path)?;
 
-    for project in projects.iter() {
-        let _ = process_project_plan(project);
+    for project in config.projects.iter() {
+        let _ = project.process_plan();
     }
-    Ok(())
-}
-
-fn process_project_plan(prj: &Project) -> Result<()> {
-    let _ = Repository::clone(&prj.git_repo_url, &prj.tmp_prj_directory)?;
-    remove_dir_all(&prj.tmp_prj_directory)?;
     Ok(())
 }
 
@@ -39,15 +41,6 @@ fn determine_config_path(explicit_path: Option<String>) -> Result<String> {
     }
 
     return Err(Error::msg("No config file specified."));
-}
-
-fn get_projects_from_config_file(file_path: String) -> Result<Vec<Project>> {
-    let mut file = File::open(file_path)?;
-    let mut contents = String::new();
-    file.read_to_string(&mut contents)?;
-    let config: Config = toml::from_str(&contents)?;
-
-    Ok(config.projects)
 }
 
 #[derive(Debug, StructOpt)]
@@ -74,6 +67,17 @@ struct Config {
     projects: Vec<Project>,
 }
 
+impl Config {
+    fn from_file(file_path: &str) -> Result<Self> {
+        let mut file = File::open(file_path)?;
+        let mut contents = String::new();
+        file.read_to_string(&mut contents)?;
+
+        let config: Self = toml::from_str(&contents)?;
+        Ok(config)
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 struct Project {
     name: String,
@@ -83,4 +87,34 @@ struct Project {
     aws_api_key: String,
     aws_secret: String,
     aws_default_region: String,
+}
+
+impl Project {
+    fn process_plan(&self) -> Result<()> {
+        let _ = Repository::clone(&self.git_repo_url, &self.tmp_prj_directory)?;
+
+        let plan = self.generate_plan()?;
+
+        let _ = remove_dir_all(&self.tmp_prj_directory)?;
+
+        Ok(())
+    }
+
+    fn generate_plan(&self) -> Result<String> {
+        Command::new("terraform init")
+            .current_dir(&self.tmp_prj_directory)
+            .spawn()?;
+
+        let output = Command::new("terraform plan")
+            .current_dir(&self.tmp_prj_directory)
+            .arg("-no-color")
+            .env("AWS_ACCESS_KEY_ID", &self.aws_api_key)
+            .env("AWS_SECRET_ACCESS_KEY", &self.aws_secret)
+            .env("AWS_DEFAULT_REGION", &self.aws_default_region)
+            .output()?;
+
+        let plan = std::str::from_utf8(&output.stdout)?;
+
+        Ok(String::from(plan))
+    }
 }
