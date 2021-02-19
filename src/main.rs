@@ -1,6 +1,7 @@
 use anyhow::{Error, Result};
+use git2::Repository;
 use serde::{Deserialize, Serialize};
-use std::fs::File;
+use std::fs::{remove_dir_all, File};
 use std::io::prelude::*;
 use structopt::StructOpt;
 
@@ -13,7 +14,15 @@ fn main() -> Result<()> {
     let config_path = determine_config_path(opts.config)?;
     let projects = get_projects_from_config_file(config_path)?;
 
-    dbg!(projects);
+    for project in projects.iter() {
+        let _ = process_project_plan(project);
+    }
+    Ok(())
+}
+
+fn process_project_plan(prj: &Project) -> Result<()> {
+    let _ = Repository::clone(&prj.git_repo_url, &prj.tmp_prj_directory)?;
+    remove_dir_all(&prj.tmp_prj_directory)?;
     Ok(())
 }
 
@@ -70,6 +79,7 @@ struct Project {
     name: String,
     slack_webhook_url: String, // TODO: Can this be a url type?
     git_repo_url: String,
+    tmp_prj_directory: String,
     aws_api_key: String,
     aws_secret: String,
     aws_default_region: String,
