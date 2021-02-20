@@ -3,6 +3,7 @@ use git2::Repository;
 use serde::{Deserialize, Serialize};
 use slack_hook::{PayloadBuilder, Slack};
 use std::fs::{remove_dir_all, File};
+use std::io;
 use std::io::prelude::*;
 use std::process::Command;
 use structopt::StructOpt;
@@ -17,13 +18,41 @@ const DEFAULT_CONFIG_FILE_NAME: &str = ".surveyor.toml";
 
 fn main() -> Result<()> {
     let opts = Opt::from_args();
+    let mut stdout = io::stdout();
+    let mut project_found = false;
 
     let config_file_path = determine_config_path(opts.config)?;
     let config = Config::from_file(&config_file_path)?;
 
     for project in config.projects.iter() {
-        let _ = project.process_plan();
+        if opts.project.is_some() {
+            if opts.project.as_ref().unwrap() == &project.name {
+                project_found = true;
+                let _ = project.process_plan();
+                write!(
+                    stdout,
+                    "\r\nPlan survey complete for {}\n\r\n",
+                    project.name
+                )?;
+            }
+        } else {
+            project_found = true;
+            let _ = project.process_plan();
+            write!(
+                stdout,
+                "\r\nPlan survey complete for {}\n\r\n",
+                project.name
+            )?;
+        }
     }
+
+    if !project_found {
+        write!(
+            stdout,
+            "\r\nNo valid projects found in the config file!\n\r\n"
+        )?;
+    }
+
     Ok(())
 }
 
