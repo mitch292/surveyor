@@ -11,5 +11,6 @@ anyhow = "1.0.38"
 git2 = "0.13.17"
 home = "0.5.3"
 serde = { version = "1.0.123", features = ["derive"] }
+slack-hook = "0.8.0"
 structopt = "0.3.21"
 toml = "0.5.8"
