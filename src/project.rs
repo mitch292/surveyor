@@ -1,10 +1,9 @@
-use git2::Repository;
-use slack_hook::{PayloadBuilder, Slack};
-use serde::{Deserialize, Serialize};
 use anyhow::Result;
-use std::process::Command;
+use git2::Repository;
+use serde::{Deserialize, Serialize};
+use slack_hook::{PayloadBuilder, Slack};
 use std::fs::remove_dir_all;
-
+use std::process::Command;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Project {
