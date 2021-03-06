@@ -12,11 +12,6 @@ use crate::project::Project;
 const DEFAULT_CONFIG_DIR: &str = ".config";
 const DEFAULT_CONFIG_FILE_NAME: &str = ".surveyor.toml";
 
-// TODO:
-// - Should we have our own errors and give the users some more helpful messages?
-// - Change the file structure?
-// - Support more config file types?
-
 fn main() -> Result<()> {
     let opts = Opt::from_args();
 
