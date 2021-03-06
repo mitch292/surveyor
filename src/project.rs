@@ -65,9 +65,32 @@ impl Project {
 /// If terraform ever changes the output of their message, this will break.
 /// TODO: Add "supported" cli versions that have this output, or remove this logic
 fn remove_refresh_message(s: String) -> String {
-    let split: Vec<&str> = s
-        .split("------------------------------------------------------------------------")
-        .collect();
-
+    let tf_break = "------------------------------------------------------------------------";
+    // if the string doesn't contain the terraform refresh message, return the string
+    if !s.contains(tf_break) {
+        return s;
+    }
+    let split: Vec<&str> = s.split(tf_break).collect();
     String::from(split[split.len() - 2])
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn remove_refresh_message_should_trim_based_on_break() {
+        let test = String::from("alkjsdmkl;adsqfl;ka------------------------------------------------------------------------daskljflaskjdfl");
+        assert!(
+            !remove_refresh_message(test).contains(
+                "------------------------------------------------------------------------"
+            ),
+            "terraform refresh message was removed"
+        )
+    }
+
+    #[test]
+    fn remove_refresh_should_return_original_message_if_bad() {
+        let test = String::from("alkjsdmkl;adsqfl;ka-------daskljflaskjdfl");
+        assert_eq!(remove_refresh_message(test.clone()), test)
+    }
 }

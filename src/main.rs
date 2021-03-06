@@ -3,7 +3,6 @@ mod project;
 use anyhow::{Error, Result};
 use serde::{Deserialize, Serialize};
 use std::fs::File;
-use std::io;
 use std::io::prelude::*;
 use std::thread;
 use structopt::StructOpt;
